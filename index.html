@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>TERMINAL // SNAKE.EXE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-void: #04070a;
+    --bg-panel: #0a120d;
+    --bezel: #14100c;
+    --bezel-hi: #2a231a;
+    --phosphor: #47ff8c;
+    --phosphor-dim: #144d2c;
+    --phosphor-soft: #b9f3cf;
+    --amber: #ffb627;
+    --danger: #ff5b4d;
+    --glass-tint: rgba(30,60,45,0.06);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;background:var(--bg-void);overflow:hidden;font-family:'VT323', monospace;}
+  body{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:16px;background:radial-gradient(ellipse at 50% 0%, #0b1712 0%, var(--bg-void) 60%);}
+  @media (prefers-reduced-motion: reduce){*{animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important;}}
+  .cabinet{position:relative;width:min(880px, 100%);background:linear-gradient(180deg, var(--bezel-hi), var(--bezel) 12%, var(--bezel) 88%, #0a0806);border-radius:22px;padding:22px 22px 26px;box-shadow:0 0 0 1px rgba(255,255,255,0.04) inset,0 30px 60px rgba(0,0,0,0.65),0 2px 0 rgba(255,255,255,0.03) inset;}
+  .cabinet-label{display:flex;justify-content:space-between;align-items:center;padding:0 6px 14px;color:#6b5f4d;font-family:'Press Start 2P', monospace;font-size:8px;letter-spacing:1px;}
+  .cabinet-label .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--amber);box-shadow:0 0 8px var(--amber);margin-right:6px;animation:blink 2.4s steps(1) infinite;}
+  @keyframes blink{0%,49%{opacity:1;}50%,100%{opacity:.25;}}
+  .screen-frame{position:relative;border-radius:10px;padding:3px;background:linear-gradient(180deg,#000,#0c0f0c);box-shadow:0 0 0 1px rgba(0,0,0,0.6) inset;}
+  .screen{position:relative;border-radius:8px;overflow:hidden;background:radial-gradient(ellipse at 50% 30%, #0b1a12 0%, #04100a 70%, #020805 100%);min-height:560px;display:flex;flex-direction:column;color:var(--phosphor);}
+  .screen::before{content:"";position:absolute; inset:0;background:repeating-linear-gradient(to bottom,rgba(0,0,0,0) 0px,rgba(0,0,0,0) 1px,rgba(0,0,0,0.35) 2px,rgba(0,0,0,0.35) 3px);mix-blend-mode:multiply;pointer-events:none;z-index:5;}
+  .screen::after{content:"";position:absolute; inset:0;background:radial-gradient(ellipse at 50% 50%, rgba(0,0,0,0) 55%, rgba(0,0,0,0.55) 100%);pointer-events:none;z-index:6;}
+  .flicker{position:absolute; inset:0;background:var(--glass-tint);pointer-events:none;z-index:7;animation:flicker 6s infinite;}
+  @keyframes flicker{0%,93%,100%{opacity:0;}94%{opacity:.5;}95%{opacity:0;}96%{opacity:.35;}97%{opacity:0;}}
+  .content{position:relative;z-index:2;flex:1;display:flex;flex-direction:column;padding:22px 26px 18px;}
+  #boot{font-family:'VT323', monospace;font-size:19px;line-height:1.5;color:var(--phosphor);white-space:pre-wrap;}
+  #boot .cursor{display:inline-block;width:9px; height:16px;background:var(--phosphor);vertical-align:-3px;animation:blink 1s steps(1) infinite;}
+  .hud{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:10px;font-family:'Press Start 2P', monospace;}
+  .hud .title{font-size:15px;letter-spacing:1px;color:var(--phosphor);text-shadow:0 0 8px rgba(71,255,140,0.6);}
+  .hud .sub{font-family:'VT323', monospace;font-size:16px;color:var(--phosphor-soft);opacity:0.7;}
+  .stats{display:flex;gap:22px;font-family:'VT323', monospace;font-size:20px;}
+  .stats .label{font-family:'Press Start 2P', monospace;font-size:8px;color:var(--phosphor-soft);opacity:0.6;display:block;margin-bottom:4px;}
+  .stats .value{color:var(--amber); text-shadow:0 0 6px rgba(255,182,39,0.5);}
+  .game-wrap{position:relative;flex:1;display:flex;align-items:center;justify-content:center;margin-top:6px;}
+  canvas{background:rgba(6,20,13,0.6);border:1px solid var(--phosphor-dim);box-shadow:0 0 26px rgba(71,255,140,0.08) inset;image-rendering:pixelated;max-width:100%;height:auto;}
+  .overlay{position:absolute; inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;background:rgba(2,8,5,0.72);backdrop-filter:blur(1px);}
+  .overlay h2{font-family:'Press Start 2P', monospace;font-size:clamp(14px,3.4vw,22px);color:var(--amber);text-shadow:0 0 10px rgba(255,182,39,0.5);margin:0;}
+  .overlay p{font-size:19px;color:var(--phosphor-soft);margin:0;max-width:340px;}
+  .btn{font-family:'Press Start 2P', monospace;font-size:11px;background:transparent;color:var(--phosphor);border:2px solid var(--phosphor);padding:12px 20px;cursor:pointer;letter-spacing:1px;box-shadow:0 0 14px rgba(71,255,140,0.15);transition:transform .08s ease, background .15s ease, color .15s ease;}
+  .btn:hover{background:var(--phosphor); color:#04100a;}
+  .btn:active{transform:scale(0.96);}
+  .btn:focus-visible{outline:3px solid var(--amber); outline-offset:3px;}
+  .hidden{display:none !important;}
+  .footer{display:flex;align-items:center;justify-content:space-between;margin-top:14px;font-size:16px;color:var(--phosphor-soft);opacity:0.75;}
+  .keys{display:flex; gap:6px; align-items:center;}
+  kbd{font-family:'VT323', monospace;border:1px solid var(--phosphor-dim);padding:2px 8px;border-radius:4px;color:var(--phosphor);}
+  .dpad{display:none;grid-template-columns:repeat(3,44px);grid-template-rows:repeat(3,44px);gap:4px;justify-content:center;margin-top:14px;}
+  .dpad button{background:rgba(71,255,140,0.06);border:1px solid var(--phosphor-dim);color:var(--phosphor);font-size:18px;border-radius:6px;}
+  .dpad button:active{background:rgba(71,255,140,0.25);}
+  .dpad .up{grid-column:2; grid-row:1;}
+  .dpad .left{grid-column:1; grid-row:2;}
+  .dpad .down{grid-column:2; grid-row:2;}
+  .dpad .right{grid-column:3; grid-row:2;}
+  @media (max-width:640px){.screen{min-height:auto;}.hud{flex-direction:column; align-items:flex-start; gap:10px;}.stats{gap:16px;}.footer .keys{display:none;}.dpad{display:grid;}}
+</style>
+</head>
+<body>
+<div class="cabinet">
+  <div class="cabinet-label">
+    <span><span class="dot"></span>MODEL 84-SNK &middot; PHOSPHOR-GREEN</span>
+    <span>PWR&nbsp;OK</span>
+  </div>
+  <div class="screen-frame">
+    <div class="screen">
+      <div class="flicker"></div>
+      <div class="content">
+        <div id="boot"></div>
+        <div id="game-ui" class="hidden" style="display:none; flex-direction:column; flex:1;">
+          <div class="hud">
+            <div>
+              <div class="title">SNAKE.EXE</div>
+              <div class="sub">terminal edition</div>
+            </div>
+            <div class="stats">
+              <div><span class="label">SCORE</span><span class="value" id="score">000</span></div>
+              <div><span class="label">BEST</span><span class="value" id="best">000</span></div>
+            </div>
+          </div>
+          <div class="game-wrap">
+            <canvas id="game" width="480" height="480" aria-label="Snake game grid"></canvas>
+            <div id="start-overlay" class="overlay">
+              <h2>INSERT COIN</h2>
+              <p>Guide the snake to the pulses. Don't bite yourself, don't hit the wall.</p>
+              <button class="btn" id="start-btn">PRESS START</button>
+            </div>
+            <div id="over-overlay" class="overlay hidden">
+              <h2>GAME OVER</h2>
+              <p id="over-text">Final score: 0</p>
+              <button class="btn" id="retry-btn">PLAY AGAIN</button>
+            </div>
+            <div id="pause-overlay" class="overlay hidden">
+              <h2>PAUSED</h2>
+              <p>Press P or tap resume to continue.</p>
+              <button class="btn" id="resume-btn">RESUME</button>
+            </div>
+          </div>
+          <div class="footer">
+            <div class="keys">
+              <span>MOVE</span>
+              <kbd>&uarr;</kbd><kbd>&darr;</kbd><kbd>&larr;</kbd><kbd>&rarr;</kbd>
+              <span style="margin-left:10px;">PAUSE</span><kbd>P</kbd>
+            </div>
+            <div>LEVEL <span id="level">1</span></div>
+          </div>
+          <div class="dpad" id="dpad">
+            <button class="up" data-dir="up" aria-label="Up">&uarr;</button>
+            <button class="left" data-dir="left" aria-label="Left">&larr;</button>
+            <button class="down" data-dir="down" aria-label="Down">&darr;</button>
+            <button class="right" data-dir="right" aria-label="Right">&rarr;</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  "use strict";
+  const bootEl = document.getElementById('boot');
+  const gameUi = document.getElementById('game-ui');
+  const bootLines = ["ARCADE OS v1.0","MEM CHECK ......... OK","PHOSPHOR TUBE ..... OK","COIN SLOT ......... READY","LOADING SNAKE.EXE ...","","SYSTEM READY."];
+  function typeBoot(lines, cb){
+    let li = 0, ci = 0;
+    let out = "";
+    bootEl.innerHTML = "";
+    function step(){
+      if(li >= lines.length){ bootEl.innerHTML = out; setTimeout(cb, 350); return; }
+      const line = lines[li];
+      if(ci <= line.length){ bootEl.innerHTML = out + line.slice(0, ci) + '<span class="cursor"></span>'; ci++; setTimeout(step, 14 + Math.random()*18); }
+      else { out += line + "\n"; li++; ci = 0; setTimeout(step, 90); }
+    }
+    step();
+  }
+  typeBoot(bootLines, function(){ bootEl.style.display = 'none'; gameUi.style.display = 'flex'; gameUi.classList.remove('hidden'); });
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const GRID = 24;
+  const CELLS = canvas.width / GRID;
+  let snake, dir, nextDir, food, score, best = 0, speedMs, timer, level, running, paused;
+  const scoreEl = document.getElementById('score');
+  const bestEl = document.getElementById('best');
+  const levelEl = document.getElementById('level');
+  const startOverlay = document.getElementById('start-overlay');
+  const overOverlay = document.getElementById('over-overlay');
+  const pauseOverlay = document.getElementById('pause-overlay');
+  const overText = document.getElementById('over-text');
+  function pad(n){ return String(n).padStart(3,'0'); }
+  function reset(){ snake = [{x:9,y:10},{x:8,y:10},{x:7,y:10}]; dir = {x:1,y:0}; nextDir = {x:1,y:0}; score = 0; level = 1; speedMs = 140; placeFood(); scoreEl.textContent = pad(score); levelEl.textContent = level; paused = false; }
+  function placeFood(){ let ok = false; while(!ok){ food = { x: Math.floor(Math.random()*CELLS), y: Math.floor(Math.random()*CELLS) }; ok = !snake.some(s => s.x === food.x && s.y === food.y); } }
+  function drawCell(x,y,color,glow){ ctx.fillStyle = color; if(glow){ ctx.shadowColor = color; ctx.shadowBlur = 10; } else { ctx.shadowBlur = 0; } ctx.fillRect(x*GRID+1, y*GRID+1, GRID-2, GRID-2); }
+  function draw(){
+    ctx.clearRect(0,0,canvas.width, canvas.height);
+    ctx.shadowBlur = 0; ctx.strokeStyle = 'rgba(71,255,140,0.06)'; ctx.lineWidth = 1;
+    for(let i=0;i<=CELLS;i++){ ctx.beginPath(); ctx.moveTo(i*GRID,0); ctx.lineTo(i*GRID,canvas.height); ctx.stroke(); ctx.beginPath(); ctx.moveTo(0,i*GRID); ctx.lineTo(canvas.width,i*GRID); ctx.stroke(); }
+    drawCell(food.x, food.y, '#ffb627', true);
+    snake.forEach((seg, i) => { drawCell(seg.x, seg.y, i === 0 ? '#8dffb8' : '#47ff8c', i === 0); });
+    ctx.shadowBlur = 0;
+  }
+  function tick(){
+    if(paused) return;
+    dir = nextDir;
+    const head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
+    if(head.x < 0 || head.y < 0 || head.x >= CELLS || head.y >= CELLS || hitsSelf(head)){ gameOver(); return; }
+    snake.unshift(head);
+    if(head.x === food.x && head.y === food.y){
+      score++; scoreEl.textContent = pad(score);
+      if(score % 5 === 0){ level++; levelEl.textContent = level; speedMs = Math.max(60, speedMs - 12); restartTimer(); }
+      placeFood();
+    } else { snake.pop(); }
+    draw();
+  }
+  function hitsSelf(head){ return snake.some(s => s.x === head.x && s.y === head.y); }
+  function restartTimer(){ clearInterval(timer); timer = setInterval(tick, speedMs); }
+  function gameOver(){ running = false; clearInterval(timer); if(score > best){ best = score; bestEl.textContent = pad(best); } overText.textContent = "FINAL SCORE: " + pad(score); overOverlay.classList.remove('hidden'); }
+  function startGame(){ reset(); running = true; startOverlay.classList.add('hidden'); overOverlay.classList.add('hidden'); pauseOverlay.classList.add('hidden'); draw(); restartTimer(); }
+  function togglePause(){ if(!running) return; paused = !paused; pauseOverlay.classList.toggle('hidden', !paused); }
+  const KEYMAP = { ArrowUp:{x:0,y:-1}, ArrowDown:{x:0,y:1}, ArrowLeft:{x:-1,y:0}, ArrowRight:{x:1,y:0}, w:{x:0,y:-1}, s:{x:0,y:1}, a:{x:-1,y:0}, d:{x:1,y:0} };
+  function setDir(newDir){ if(!running || paused) return; if(newDir.x === -dir.x && newDir.y === -dir.y) return; nextDir = newDir; }
+  window.addEventListener('keydown', (e) => { if(e.key === 'p' || e.key === 'P'){ togglePause(); return; } const d = KEYMAP[e.key]; if(d){ e.preventDefault(); setDir(d); } });
+  document.getElementById('start-btn').addEventListener('click', startGame);
+  document.getElementById('retry-btn').addEventListener('click', startGame);
+  document.getElementById('resume-btn').addEventListener('click', togglePause);
+  document.getElementById('dpad').addEventListener('click', (e) => { const btn = e.target.closest('button[data-dir]'); if(!btn) return; const map = { up:{x:0,y:-1}, down:{x:0,y:1}, left:{x:-1,y:0}, right:{x:1,y:0} }; setDir(map[btn.dataset.dir]); });
+  let touchStart = null;
+  canvas.addEventListener('touchstart', (e) => { const t = e.changedTouches[0]; touchStart = { x:t.clientX, y:t.clientY }; }, {passive:true});
+  canvas.addEventListener('touchend', (e) => {
+    if(!touchStart) return;
+    const t = e.changedTouches[0]; const dx = t.clientX - touchStart.x; const dy = t.clientY - touchStart.y;
+    if(Math.max(Math.abs(dx), Math.abs(dy)) < 20) return;
+    if(Math.abs(dx) > Math.abs(dy)){ setDir(dx > 0 ? {x:1,y:0} : {x:-1,y:0}); } else { setDir(dy > 0 ? {x:0,y:1} : {x:0,y:-1}); }
+    touchStart = null;
+  }, {passive:true});
+  reset();
+  draw();
+})();
+</script>
+</body>
+</html>
